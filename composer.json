@@ -1,0 +1,24 @@
+{
+    "name": "jonasriemer/postcardarchive",
+    "description": "Digitale Plattform zum versenden von Postkarten, damit diese nicht verloren gehen",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "Postcardarchive\\": "src/",
+            "Postcardarchive\\Models\\": "src/models/",
+            "Postcardarchive\\Controllers\\": "src/controllers/",
+            "Postcardarchive\\Utils\\": "src/utils/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Jonas Riemer",
+            "email": "riemer.jonas@outlook.de"
+        }
+    ],
+    "require": {
+        "ramsey/uuid": "^4.9",
+        "phpseclib/phpseclib": "^3.0",
+        "phpmailer/phpmailer": "^7.0"
+    }
+}
