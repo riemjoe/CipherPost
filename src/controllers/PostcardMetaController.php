@@ -43,9 +43,22 @@ class PostcardMetaController
 
         $url = "https://nominatim.openstreetmap.org/reverse?format=json&lat={$latitude}&lon={$longitude}&zoom=3&addressdetails=1";
 
+        // WICHTIG: Nominatim verlangt zwingend einen User-Agent!
+        $options = [
+            "http" => [
+                "header" => "User-Agent: PostcardArchive/1.0 (dein-email@beispiel.de)\r\n"
+            ]
+        ];
+        $context = stream_context_create($options);
+
         try {
-            $response = @file_get_contents($url);
-            if ($response === false) return null;
+            // Nutze den Context für die Anfrage
+            $response = @file_get_contents($url, false, $context);
+            
+            if ($response === false) {
+                // Falls file_get_contents fehlschlägt (z.B. Allow_url_fopen deaktiviert)
+                return null;
+            }
 
             $data = json_decode($response, true);
             if (isset($data['address']['country'])) {
@@ -72,7 +85,7 @@ class PostcardMetaController
         // 2. Model instanziieren
         $meta = new PostcardMetaModel([
             'postcard_id'       => $postcard->getId(),
-            'country'           => $metaData['country'] ?? 'Unbekannt',
+            'country'           => self::getCountryFromCoordinates($postcard->getLatitude(), $postcard->getLongitude()),
             'temperature'       => $weather['temperature'] ?? null,
             'weather_condition' => self::mapWeatherCode($weather['weather_code'] ?? null),
             'travel_mode'       => $metaData['travel_mode'] ?? '🚗'

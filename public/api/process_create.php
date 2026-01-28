@@ -1,5 +1,7 @@
 <?php
 
+use Postcardarchive\Controllers\PostcardMetaController;
+
 session_start();
 
 use Postcardarchive\Controllers\PostcardController;
@@ -53,6 +55,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $postcard = PostcardController::createPostcard($encryptedFront, $encryptedBack, $lat, $lng);
             $stampCode = $postcard->getStampCode();
+
+            try {
+                PostcardMetaController::createPostcardMeta($postcard, [
+                    'travel_mode' => $_POST['travel_mode'] ?? '🚗' 
+                ]);
+            } catch (\Exception $metaEx) {
+                // Ein Fehler bei den Metadaten (z.B. API-Timeout) sollte 
+                // nicht den gesamten Prozess stoppen. Wir loggen ihn nur.
+                error_log("Metadaten-Fehler: " . $metaEx->getMessage());
+            }
 
             $fileModel = new StampCodeFileModel([
                 'stamp_code'  => $stampCode,

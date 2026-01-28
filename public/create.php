@@ -28,6 +28,7 @@
             </header>
 
             <form action="api/process_create.php" method="POST" enctype="multipart/form-data" class="p-12 space-y-12">
+                
                 <div class="grid md:grid-cols-2 gap-10">
                     <div class="space-y-4">
                         <label class="block text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] ml-2">Vorderseite (Motiv)</label>
@@ -53,13 +54,32 @@
                 </div>
 
                 <div class="space-y-4">
+                    <label class="block text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] ml-2">Wie bist du gereist?</label>
+                    <div class="grid grid-cols-3 md:grid-cols-6 gap-4">
+                        <?php 
+                        $modes = ['🚗' => 'Auto', '✈️' => 'Flug', '🚆' => 'Zug', '🚲' => 'Rad', '🥾' => 'Wandern', '🚢' => 'Schiff'];
+                        foreach ($modes as $emoji => $label): 
+                        ?>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="travel_mode" value="<?= $emoji ?>" class="peer hidden" <?= $emoji === '🚗' ? 'checked' : '' ?>>
+                            <div class="flex flex-col items-center p-4 rounded-2xl border-2 border-stone-100 peer-checked:border-sky-500 peer-checked:bg-sky-50 hover:bg-stone-50 transition-all">
+                                <span class="text-2xl mb-1"><?= $emoji ?></span>
+                                <span class="text-[9px] font-bold text-stone-400 uppercase tracking-tighter"><?= $label ?></span>
+                            </div>
+                        </label>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
                     <label class="block text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] ml-2 text-center">Fundort der Erinnerung</label>
                     <div id="map" class="h-80 rounded-[2rem] border border-stone-100 shadow-inner grayscale-[0.5] hover:grayscale-0 transition-all duration-700"></div>
                     <input type="hidden" name="lat" id="lat">
                     <input type="hidden" name="lng" id="lng">
+                    <p class="text-center text-[9px] text-stone-400 italic">Klicke auf die Karte, um den Ort zu markieren.</p>
                 </div>
 
-                <button type="submit" class="btn-travel w-full text-white py-6 rounded-[1.5rem] font-bold text-xl shadow-2xl">
+                <button type="submit" class="w-full bg-sky-950 hover:bg-sky-900 text-white py-6 rounded-[1.5rem] font-bold text-xl shadow-2xl transition-all transform hover:-translate-y-1">
                     Erinnerung archivieren
                 </button>
             </form>
@@ -69,7 +89,10 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const map = L.map('map').setView([20, 0], 2);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM' }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { 
+            attribution: '&copy; OpenStreetMap contributors' 
+        }).addTo(map);
+
         let marker;
         map.on('click', (e) => {
             if (marker) marker.setLatLng(e.latlng);
