@@ -19,7 +19,6 @@ if (session_status() === PHP_SESSION_NONE) {
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap');
         
-        /* Ladebildschirm Styling */
         #loading-overlay {
             display: none;
             backdrop-filter: blur(10px);
@@ -30,7 +29,7 @@ if (session_status() === PHP_SESSION_NONE) {
             width: 50px;
             height: 50px;
             border: 3px solid #f3f3f3;
-            border-top: 3px solid #0c4a6e; /* sky-950 */
+            border-top: 3px solid #0c4a6e;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -38,6 +37,14 @@ if (session_status() === PHP_SESSION_NONE) {
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #e2e8f0;
+            border-radius: 10px;
         }
     </style>
 </head>
@@ -133,12 +140,51 @@ if (session_status() === PHP_SESSION_NONE) {
                     <p class="text-center text-[9px] text-stone-400 italic">Klicke auf die Karte, um den Ort zu markieren.</p>
                 </div>
 
+                <div class="space-y-4 pt-6 border-t border-stone-100">
+                    <label class="block text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em] ml-2">Empfänger (Direktzustellung)</label>
+                    <div id="selected-receivers-list" class="flex flex-wrap gap-2 mb-4">
+                        </div>
+                    <button type="button" onclick="openModal()" class="inline-flex items-center gap-2 px-6 py-3 bg-stone-100 hover:bg-sky-100 text-sky-900 rounded-full text-xs font-bold transition-all group">
+                        <span class="text-lg group-hover:rotate-90 transition-transform">+</span>
+                        Empfänger direkt hinzufügen
+                    </button>
+                    <div id="hidden-receivers-inputs"></div>
+                </div>
+
                 <button type="submit" class="w-full bg-sky-950 hover:bg-sky-900 text-white py-6 rounded-[1.5rem] font-bold text-xl shadow-2xl transition-all transform hover:-translate-y-1">
                     Erinnerung archivieren
                 </button>
             </form>
         </div>
     </main>
+
+    <div id="user-modal" class="hidden fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl transform animate-in slide-in-from-bottom-8 duration-500">
+            <div class="p-8 bg-sky-950 text-white flex justify-between items-center">
+                <h3 class="text-xl font-serif italic">Empfänger suchen</h3>
+                <button onclick="closeModal()" class="text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-8 space-y-6">
+                <div class="relative">
+                    <input type="text" id="user-search-query" 
+                           class="w-full bg-stone-100 border-none rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-sky-500 outline-none transition-all" 
+                           placeholder="Benutzernamen eingeben..."
+                           onkeyup="if(event.key === 'Enter') searchUsers()">
+                    <button onclick="searchUsers()" class="absolute right-2 top-2 bottom-2 px-4 bg-sky-600 text-white rounded-xl text-xs font-bold hover:bg-sky-700 transition-colors">
+                        Suchen
+                    </button>
+                </div>
+                
+                <div id="search-results-container" class="max-h-64 overflow-y-auto custom-scrollbar space-y-2 pr-2">
+                    <p class="text-center text-stone-400 text-xs py-10">Gib einen Namen ein, um die Suche zu starten.</p>
+                </div>
+                
+                <button type="button" onclick="closeModal()" class="w-full py-3 text-stone-400 text-[10px] uppercase tracking-[0.3em] font-bold hover:text-stone-600 transition-colors">
+                    Abbrechen
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
@@ -173,6 +219,93 @@ if (session_status() === PHP_SESSION_NONE) {
                 };
                 reader.readAsDataURL(input.files[0]);
             }
+        }
+
+        // --- EMPFÄNGER LOGIK ---
+        let selectedUserIds = new Set();
+
+        function openModal() {
+            document.getElementById('user-modal').classList.remove('hidden');
+            document.getElementById('user-search-query').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('user-modal').classList.add('hidden');
+        }
+
+        async function searchUsers() {
+            const query = document.getElementById('user-search-query').value;
+            const container = document.getElementById('search-results-container');
+
+            if (query.length < 2) {
+                container.innerHTML = '<p class="text-center text-amber-600 text-xs py-4">Bitte mindestens 2 Zeichen eingeben.</p>';
+                return;
+            }
+
+            container.innerHTML = '<div class="flex justify-center py-10"><div class="loader-spinner !w-8 !h-8 !border-2"></div></div>';
+
+            try {
+                // Hier rufen wir einen API-Endpunkt auf, den wir noch anlegen müssen (siehe unten)
+                const response = await fetch(`api/search_users.php?q=${encodeURIComponent(query)}`);
+                const users = await response.json();
+
+                container.innerHTML = '';
+                if (users.length === 0) {
+                    container.innerHTML = '<p class="text-center text-stone-400 text-xs py-10">Keine Benutzer gefunden.</p>';
+                    return;
+                }
+
+                users.forEach(user => {
+                    const div = document.createElement('div');
+                    div.className = 'group flex items-center justify-between p-4 rounded-2xl border border-stone-100 hover:border-sky-200 hover:bg-sky-50 transition-all cursor-pointer';
+                    div.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-[10px] font-bold uppercase">${user.username.substring(0,2)}</div>
+                            <span class="text-sm font-medium text-stone-700">${user.username}</span>
+                        </div>
+                        <span class="text-sky-600 text-[10px] font-bold uppercase opacity-0 group-hover:opacity-100 transition-opacity">Hinzufügen +</span>
+                    `;
+                    div.onclick = () => selectUser(user.id, user.username);
+                    container.appendChild(div);
+                });
+            } catch (e) {
+                container.innerHTML = '<p class="text-center text-red-400 text-xs py-10">Fehler bei der Suche.</p>';
+            }
+        }
+
+        function selectUser(id, username) {
+            if (selectedUserIds.has(id)) {
+                closeModal();
+                return;
+            }
+
+            selectedUserIds.add(id);
+
+            // Badge im Formular anzeigen
+            const badge = document.createElement('div');
+            badge.id = `receiver-badge-${id}`;
+            badge.className = 'inline-flex items-center gap-2 px-4 py-2 bg-sky-900 text-white rounded-full text-xs font-bold animate-in zoom-in duration-300';
+            badge.innerHTML = `
+                <span>${username}</span>
+                <button type="button" onclick="removeUser(${id})" class="text-sky-300 hover:text-white font-bold ml-1">×</button>
+            `;
+            document.getElementById('selected-receivers-list').appendChild(badge);
+
+            // Hidden Input für POST hinzufügen
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'receivers[]';
+            input.value = id;
+            input.id = `receiver-input-${id}`;
+            document.getElementById('hidden-receivers-inputs').appendChild(input);
+
+            closeModal();
+        }
+
+        function removeUser(id) {
+            selectedUserIds.delete(id);
+            document.getElementById(`receiver-badge-${id}`).remove();
+            document.getElementById(`receiver-input-${id}`).remove();
         }
     </script>
 </body>

@@ -63,6 +63,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
                 UtilsLogging::debug("Postkarte $stampCode wurde dem Benutzer $userId zugewiesen.");
             }
 
+            if (!empty($_POST['receivers']) && is_array($_POST['receivers'])) 
+            {
+                foreach ($_POST['receivers'] as $receiverId) 
+                {
+                    //TODO: Integration der Empfängerlogik
+                    $country = $meta ? $meta->getCountry() : 'Unbekannt';
+                    UserStampsController::addReceivedStamp(
+                        $receiverId,
+                        $stampCode,
+                        $privateKeyString,
+                        $country
+                    );
+                }
+            }
+
             $fileModel = new StampCodeFileModel([
                 'stamp_code'  => $stampCode,
                 'private_key' => $privateKeyString

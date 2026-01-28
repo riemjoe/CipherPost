@@ -118,6 +118,13 @@ class UserModel
         return $data ? new UserModel($data) : null;
     }
 
+    public static function searchByUsername(PDO $pdo, string $query): array
+    {
+        $stmt = $pdo->prepare("SELECT id, username FROM users WHERE username LIKE :query LIMIT 10");
+        $stmt->execute([':query' => '%' . $query . '%']);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     /**
      * Holt alle Benutzer aus der Datenbank.
      */

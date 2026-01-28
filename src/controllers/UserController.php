@@ -59,4 +59,20 @@ class UserController
     {
         return isset($_SESSION['user_id']);
     }
+
+    public static function getCurrentUser(): ?UserModel
+    {
+        $pdo = UtilsDatabase::connect();
+        if (!self::isLoggedIn()) {
+            return null;
+        }
+
+        return UserModel::fromId($pdo, $_SESSION['user_id']);
+    }
+
+    public static function getAllUsers(): array
+    {
+        $pdo = UtilsDatabase::connect();
+        return UserModel::fetchAll($pdo);
+    }
 }
