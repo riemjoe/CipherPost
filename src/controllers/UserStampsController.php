@@ -5,6 +5,7 @@ namespace Postcardarchive\Controllers;
 use Postcardarchive\Models\UserStamps;
 use Postcardarchive\Utils\UtilsDatabase;
 use PDO;
+use Postcardarchive\Utils\UtilsLogging;
 
 class UserStampsController
 {
@@ -29,7 +30,7 @@ class UserStampsController
             $stamp->saveOrUpdate($pdo);
             return true;
         } catch (\Exception $e) {
-            error_log("Fehler beim Speichern des erstellten Stamps: " . $e->getMessage());
+            UtilsLogging::error("Fehler beim Speichern des erstellten Stamps: " . $e->getMessage());
             return false;
         }
     }
@@ -62,7 +63,7 @@ class UserStampsController
             $stamp->saveOrUpdate($pdo);
             return true;
         } catch (\Exception $e) {
-            error_log("Fehler beim Speichern des empfangenen Stamps: " . $e->getMessage());
+            UtilsLogging::error("Fehler beim Speichern des empfangenen Stamps: " . $e->getMessage());
             return false;
         }
     }

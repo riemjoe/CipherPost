@@ -71,7 +71,7 @@ class UtilsDatabase
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER,
                 country TEXT,
-                stamp_code TEXT UNIQUE,
+                stamp_code TEXT,
                 private_key TEXT,
                 was_received INTEGER,
                 created_at TEXT,

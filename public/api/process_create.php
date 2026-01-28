@@ -75,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
                         $privateKeyString,
                         $country
                     );
+                    UtilsLogging::debug("Postkarte $stampCode wurde dem Empfänger $receiverId zugewiesen.");
                 }
             }
 
