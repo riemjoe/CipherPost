@@ -13,65 +13,79 @@ use Postcardarchive\Controllers\UserController;
     <link rel="stylesheet" href="style.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap');
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col overflow-x-hidden bg-stone-50">
 
-    <nav class="fixed top-0 right-0 p-8 z-[100] animate-in fade-in slide-in-from-right-4 duration-700">
+    <nav class="fixed top-0 left-0 right-0 md:left-auto p-4 md:p-8 z-[100] flex justify-center md:justify-end animate-in fade-in slide-in-from-right-4 duration-700">
         <?php if (UserController::isLoggedIn()): ?>
-            <div class="glass-panel px-6 py-3 rounded-full border border-white flex items-center gap-4 shadow-sm">
+            <div class="glass-panel px-5 py-2 md:px-6 md:py-3 rounded-full border border-white flex items-center gap-4 shadow-sm">
                 <div class="flex flex-col items-end">
-                    <span class="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Eingeloggt als</span>
-                    <span class="text-sm font-serif italic text-sky-950"><?= htmlspecialchars($_SESSION['username']) ?></span>
+                    <span class="text-[8px] md:text-[10px] font-bold text-stone-400 uppercase tracking-widest">Eingeloggt als</span>
+                    <span class="text-xs md:text-sm font-serif italic text-sky-950"><?= htmlspecialchars($_SESSION['username']) ?></span>
                 </div>
-                <div class="w-px h-8 bg-stone-200"></div>
-                <a href="logout.php" class="text-stone-400 hover:text-red-500 transition-colors text-xs font-bold uppercase tracking-tighter">Abmelden</a>
+                <div class="w-px h-6 md:h-8 bg-stone-200"></div>
+                <a href="logout.php" class="text-stone-400 hover:text-red-500 transition-colors text-[10px] md:text-xs font-bold uppercase tracking-tighter">Abmelden</a>
             </div>
         <?php else: ?>
-            <a href="login.php" class="glass-panel px-8 py-3 rounded-full border border-white text-sky-900 font-bold uppercase text-[10px] tracking-[0.2em] shadow-sm hover:bg-sky-900 hover:text-white transition-all duration-300">
+            <a href="login.php" class="glass-panel px-6 py-2 md:px-8 md:py-3 rounded-full border border-white text-sky-900 font-bold uppercase text-[10px] tracking-[0.2em] shadow-sm hover:bg-sky-900 hover:text-white transition-all duration-300">
                 Anmelden
             </a>
         <?php endif; ?>
     </nav>
 
-    <main class="flex-grow flex flex-col items-center justify-center p-6 relative">
+    <main class="flex-grow flex flex-col items-center justify-center p-6 pt-24 md:pt-6 relative">
         <div class="absolute top-[-10%] left-[-5%] w-96 h-96 bg-sky-100 rounded-full blur-3xl opacity-50 z-0"></div>
         
         <div class="relative z-10 w-full max-w-6xl animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            <header class="text-center mb-16">
-                <span class="inline-block px-4 py-1 mb-4 text-[10px] font-bold tracking-[0.4em] uppercase bg-sky-900 text-white rounded-full">
+            <header class="text-center mb-10 md:mb-16">
+                <span class="inline-block px-4 py-1 mb-4 text-[9px] md:text-[10px] font-bold tracking-[0.4em] uppercase bg-sky-900 text-white rounded-full">
                     Digital Memories
                 </span>
-                <h1 class="text-7xl font-serif italic text-sky-950 mb-6 tracking-tighter" style="font-family: 'Playfair Display', serif;">
+                <h1 class="text-4xl md:text-7xl font-serif italic text-sky-950 mb-6 tracking-tighter" style="font-family: 'Playfair Display', serif;">
                     Postcard Archive
                 </h1>
-                <p class="text-lg text-stone-500 max-w-md mx-auto leading-relaxed font-light">
+                <p class="text-base md:text-lg text-stone-500 max-w-md mx-auto leading-relaxed font-light">
                     Bewahre deine Reiseerinnerungen in einem <span class="text-sky-800 font-medium">verschlüsselten Tresor</span> auf.
                 </p>
             </header>
 
-            <div class="grid md:grid-cols-3 gap-8">
-                <a href="create.php" class="glass-panel group p-10 rounded-[2.5rem] flex flex-col items-center transition-all duration-500 hover:-translate-y-3 hover:shadow-2xl bg-white/50 border border-white">
-                    <div class="w-20 h-20 bg-sky-50 rounded-3xl flex items-center justify-center text-4xl mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner animate-float">
+            <div class="grid md:grid-cols-3 gap-6 md:gap-8">
+                <a href="create.php" class="glass-panel group p-8 md:p-10 rounded-[2rem] md:rounded-[2.5rem] flex flex-col items-center transition-all duration-500 hover:-translate-y-3 hover:shadow-2xl border border-white">
+                    <div class="w-16 h-16 md:w-20 md:h-20 bg-sky-50 rounded-2xl md:rounded-3xl flex items-center justify-center text-3xl md:text-4xl mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner animate-float">
                         ✈️
                     </div>
-                    <h2 class="text-2xl font-bold text-sky-950 mb-2">Karte senden</h2>
+                    <h2 class="text-xl md:text-2xl font-bold text-sky-950 mb-2">Karte senden</h2>
                     <p class="text-stone-500 text-center text-sm leading-relaxed">Erstelle eine neue digitale Postkarte und generiere dein Unikat.</p>
                 </a>
 
-                <a href="view-map.php" class="glass-panel group p-10 rounded-[2.5rem] flex flex-col items-center transition-all duration-500 hover:-translate-y-3 hover:shadow-2xl bg-white/50 border border-white">
-                    <div class="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center text-4xl mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner animate-float" style="animation-delay: 0.2s">
+                <a href="view-map.php" class="glass-panel group p-8 md:p-10 rounded-[2rem] md:rounded-[2.5rem] flex flex-col items-center transition-all duration-500 hover:-translate-y-3 hover:shadow-2xl border border-white">
+                    <div class="w-16 h-16 md:w-20 md:h-20 bg-emerald-50 rounded-2xl md:rounded-3xl flex items-center justify-center text-3xl md:text-4xl mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner animate-float" style="animation-delay: 0.2s">
                         📍
                     </div>
-                    <h2 class="text-2xl font-bold text-sky-950 mb-2">Briefmarken</h2>
+                    <h2 class="text-xl md:text-2xl font-bold text-sky-950 mb-2">Briefmarken</h2>
                     <p class="text-stone-500 text-center text-sm leading-relaxed">Entdecke deine gesammelten Briefmarken.</p>
                 </a>
 
-                <a href="view.php" class="glass-panel group p-10 rounded-[2.5rem] flex flex-col items-center transition-all duration-500 hover:-translate-y-3 hover:shadow-2xl bg-white/50 border border-white">
-                    <div class="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center text-4xl mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner animate-float" style="animation-delay: 0.4s">
+                <a href="view.php" class="glass-panel group p-8 md:p-10 rounded-[2rem] md:rounded-[2.5rem] flex flex-col items-center transition-all duration-500 hover:-translate-y-3 hover:shadow-2xl border border-white">
+                    <div class="w-16 h-16 md:w-20 md:h-20 bg-amber-50 rounded-2xl md:rounded-3xl flex items-center justify-center text-3xl md:text-4xl mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner animate-float" style="animation-delay: 0.4s">
                         🔑
                     </div>
-                    <h2 class="text-2xl font-bold text-sky-950 mb-2">Archiv öffnen</h2>
+                    <h2 class="text-xl md:text-2xl font-bold text-sky-950 mb-2">Archiv öffnen</h2>
                     <p class="text-stone-500 text-center text-sm leading-relaxed">Nutze deinen privaten Schlüssel, um verborgene Nachrichten zu lesen.</p>
                 </a>
             </div>
