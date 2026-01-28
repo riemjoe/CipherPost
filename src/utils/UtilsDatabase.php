@@ -27,6 +27,8 @@ class UtilsDatabase
     public static function initializeDatabase()
     {
         $pdo = self::connect();
+        
+        // Postkarte
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS postcards (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,6 +38,18 @@ class UtilsDatabase
                 latitude REAL,
                 longitude REAL,
                 created_at TEXT
+            );
+        ");
+
+        // Postkarten-Metadaten
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS postcard_meta (
+                postcard_id INTEGER PRIMARY KEY,
+                country TEXT,
+                temperature REAL,
+                weather_condition TEXT,
+                travel_mode TEXT,
+                FOREIGN KEY(postcard_id) REFERENCES postcards(id) ON DELETE CASCADE
             );
         ");
     }
