@@ -84,7 +84,7 @@ class UtilsFormatter
     }
 
 
-    public static function compressImageData($fileInputName, $quality = 80) 
+    public static function compressImageData($fileInputName, $quality = 60) 
     {
         if (!isset($_FILES[$fileInputName]) || $_FILES[$fileInputName]['error'] !== UPLOAD_ERR_OK) 
         {
