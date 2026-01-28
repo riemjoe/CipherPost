@@ -3,6 +3,8 @@ session_start();
 
 use Postcardarchive\Controllers\PostcardController;
 use Postcardarchive\Controllers\PostcardMetaController;
+use Postcardarchive\Controllers\UserStampsController;
+use Postcardarchive\Controllers\UserController;
 use Postcardarchive\Utils\UtilsEncryptor;
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -13,32 +15,53 @@ $frontDecrypted = null;
 $backDecrypted = null;
 $meta = null;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['key_file'])) {
-    if ($_FILES['key_file']['error'] === UPLOAD_ERR_OK) {
+// LOGIK: VERARBEITUNG DES SCHLÜSSELS
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $keyData = null;
+
+    // FALL A: Direkt-Zugriff aus dem Sammelalbum (view-map.php)
+    if (isset($_POST['direct_key_json'])) {
+        $keyData = json_decode($_POST['direct_key_json'], true);
+    } 
+    // FALL B: Manueller Datei-Upload
+    elseif (isset($_FILES['key_file']) && $_FILES['key_file']['error'] === UPLOAD_ERR_OK) {
         $keyData = json_decode(file_get_contents($_FILES['key_file']['tmp_name']), true);
+    }
+
+    if ($keyData && isset($keyData['stamp_code'], $keyData['private_key'])) {
+        $postcard = PostcardController::getPostcardByStampCode($keyData['stamp_code']);
         
-        if ($keyData && isset($keyData['stamp_code'], $keyData['private_key'])) {
-            $postcard = PostcardController::getPostcardByStampCode($keyData['stamp_code']);
-            
-            if ($postcard) {
-                try {
-                    $privateKey = UtilsEncryptor::getPrivateKeyFromString($keyData['private_key']);
-                    $frontDecrypted = UtilsEncryptor::decryptData($privateKey, $postcard->getFrontImage());
-                    $backDecrypted  = UtilsEncryptor::decryptData($privateKey, $postcard->getBackImage());
-                    
-                    // Metadaten zur Karte laden
-                    $meta = PostcardMetaController::getPostcardMetaByPostcardId($postcard->getId());
-                    
-                } catch (\Exception $e) { 
-                    $error = "Schlüssel ungültig oder Daten beschädigt."; 
-                    $postcard = null; 
+        if ($postcard) {
+            try {
+                $privateKeyStr = $keyData['private_key'];
+                $privateKey = UtilsEncryptor::getPrivateKeyFromString($privateKeyStr);
+                
+                // ENTSCHLÜSSELUNG
+                $frontDecrypted = UtilsEncryptor::decryptData($privateKey, $postcard->getFrontImage());
+                $backDecrypted  = UtilsEncryptor::decryptData($privateKey, $postcard->getBackImage());
+                
+                // METADATEN LADEN
+                $meta = PostcardMetaController::getPostcardMetaByPostcardId($postcard->getId());
+
+                // AUTOMATISCH IN USER-WALLET SPEICHERN (falls eingeloggt)
+                if (UserController::isLoggedIn()) {
+                    UserStampsController::addReceivedStamp(
+                        $_SESSION['user_id'], 
+                        $keyData['stamp_code'], 
+                        $privateKeyStr, 
+                        $meta ? $meta->getCountry() : 'Empfangen'
+                    );
                 }
-            } else { 
-                $error = "Diese Postkarte existiert nicht im Archiv."; 
+                
+            } catch (\Exception $e) { 
+                $error = "Schlüssel ungültig oder Daten beschädigt."; 
+                $postcard = null; 
             }
         } else { 
-            $error = "Ungültiges Schlüsselformat."; 
+            $error = "Diese Postkarte existiert nicht im Archiv."; 
         }
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $error = "Ungültiges Schlüsselformat.";
     }
 }
 ?>
@@ -53,15 +76,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['key_file'])) {
     <link rel="stylesheet" href="style.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap');
-        
-        /* Briefmarken-Zackung Simulation */
-        .stamp-border {
-            background-color: white;
-            padding: 8px;
-            position: relative;
-            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.1));
-            border: 1px dashed #d1d5db;
-        }
     </style>
 </head>
 <body class="bg-stone-50 min-h-screen pb-20">
@@ -74,22 +88,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['key_file'])) {
     </nav>
 
     <main class="max-w-5xl mx-auto px-6 flex flex-col items-center">
+        
         <?php if (!$postcard): ?>
-            <div class="glass-panel w-full max-w-md p-12 rounded-[3rem] text-center shadow-2xl animate-in zoom-in duration-500 bg-white">
+            <div class="glass-panel w-full max-w-md p-12 rounded-[3rem] text-center shadow-2xl animate-in zoom-in duration-500 bg-white border border-stone-100">
                 <div class="text-6xl mb-8">🔐</div>
                 <h1 class="text-4xl font-serif italic text-sky-950 mb-4" style="font-family: 'Playfair Display', serif;">Privates Archiv</h1>
-                <p class="text-stone-500 mb-10 font-light">Lade deine .json Schlüsseldatei hoch, um die Verschlüsselung zu lösen.</p>
+                <p class="text-stone-500 mb-10 font-light text-sm leading-relaxed">
+                    Lade eine Schlüsseldatei hoch, um die Verschlüsselung zu lösen.
+                </p>
                 
                 <form action="view.php" method="POST" enctype="multipart/form-data" class="space-y-6">
                     <label class="block relative border-2 border-dashed border-stone-200 rounded-2xl p-8 hover:border-sky-500 hover:bg-stone-50 transition-all cursor-pointer group">
                         <input type="file" name="key_file" accept=".json" required class="hidden" onchange="this.nextElementSibling.innerText = this.files[0].name">
                         <span class="text-stone-400 text-xs font-bold tracking-widest uppercase">Schlüssel wählen</span>
                     </label>
-                    <button type="submit" class="w-full bg-sky-950 text-white py-5 rounded-2xl font-bold text-lg hover:bg-sky-900 transition-colors">Entschlüsseln</button>
+                    <button type="submit" class="w-full bg-sky-950 text-white py-5 rounded-2xl font-bold text-lg hover:bg-sky-900 transition-colors shadow-lg active:scale-95 transition-transform">
+                        Entschlüsseln
+                    </button>
                 </form>
-                <?php if ($error): ?> <p class="mt-4 text-red-500 text-xs italic"><?= $error ?></p> <?php endif; ?>
+                <?php if ($error): ?> 
+                    <p class="mt-4 text-red-500 text-xs italic font-bold"><?= $error ?></p> 
+                <?php endif; ?>
             </div>
+
         <?php else: ?>
+            
             
             <div class="postcard-container cursor-pointer mb-12" onclick="this.classList.toggle('is-flipped')">
                 <div class="postcard-inner">
@@ -163,6 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['key_file'])) {
                     </script>
                 </div>
             <?php endif; ?>
+
         <?php endif; ?>
     </main>
 </body>

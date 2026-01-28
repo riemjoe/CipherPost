@@ -1,10 +1,11 @@
 <?php
 
-use Postcardarchive\Controllers\PostcardMetaController;
-
 session_start();
 
 use Postcardarchive\Controllers\PostcardController;
+use Postcardarchive\Controllers\PostcardMetaController;
+use Postcardarchive\Controllers\UserStampsController; // Neu hinzugefügt
+use Postcardarchive\Controllers\UserController;       // Neu hinzugefügt
 use Postcardarchive\Utils\UtilsEncryptor;
 use Postcardarchive\Models\StampCodeFileModel;
 
@@ -44,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($frontWebP && $backWebP) {
         try {
+            // 1. Verschlüsselung & Key-Generierung
             $privateKeyObj = UtilsEncryptor::createPrivateKey();
             $publicKeyObj = UtilsEncryptor::getPublicKeyFromPrivateKey($privateKeyObj);
             
@@ -53,25 +55,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $lat = !empty($_POST['lat']) ? (float)$_POST['lat'] : null;
             $lng = !empty($_POST['lng']) ? (float)$_POST['lng'] : null;
             
+            // 2. Postkarte erstellen
             $postcard = PostcardController::createPostcard($encryptedFront, $encryptedBack, $lat, $lng);
             $stampCode = $postcard->getStampCode();
+            $privateKeyString = $privateKeyObj->toString('PKCS8');
 
+            // 3. Metadaten (Land/Wetter) generieren
+            $meta = null;
             try {
-                PostcardMetaController::createPostcardMeta($postcard, [
+                $meta = PostcardMetaController::createPostcardMeta($postcard, [
                     'travel_mode' => $_POST['travel_mode'] ?? '🚗' 
                 ]);
             } catch (\Exception $metaEx) {
-                // Ein Fehler bei den Metadaten (z.B. API-Timeout) sollte 
-                // nicht den gesamten Prozess stoppen. Wir loggen ihn nur.
                 error_log("Metadaten-Fehler: " . $metaEx->getMessage());
             }
 
+            if (UserController::isLoggedIn()) {
+                $userId = $_SESSION['user_id'];
+                $country = $meta ? $meta->getCountry() : 'Unbekannt';
+                
+                // Wir nutzen den UserStampsController um den Schlüssel in der DB zu hinterlegen
+                UserStampsController::addCreatedStamp(
+                    $userId, 
+                    $stampCode, 
+                    $privateKeyString, 
+                    $country
+                );
+            }
+
+            // 4. Schlüssel für Session/Download vorbereiten
             $fileModel = new StampCodeFileModel([
                 'stamp_code'  => $stampCode,
-                'private_key' => $privateKeyObj->toString('PKCS8')
+                'private_key' => $privateKeyString
             ]);
 
-            // DATEN IN SESSION SPEICHERN STATT DOWNLOAD
             $_SESSION['last_key_file'] = [
                 'filename' => "postcard_key_" . substr($stampCode, 0, 8) . ".json",
                 'content'  => json_encode($fileModel->toArray(), JSON_PRETTY_PRINT)

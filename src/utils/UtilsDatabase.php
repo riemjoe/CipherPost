@@ -52,6 +52,31 @@ class UtilsDatabase
                 FOREIGN KEY(postcard_id) REFERENCES postcards(id) ON DELETE CASCADE
             );
         ");
+
+        // Benutzer
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE,
+                password_hash TEXT,
+                email TEXT UNIQUE,
+                created_at TEXT
+            );
+        ");
+
+        // Benutzer-Stamps
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS user_stamps (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                country TEXT,
+                stamp_code TEXT UNIQUE,
+                private_key TEXT,
+                was_received INTEGER,
+                created_at TEXT,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+        ");
     }
 }
 

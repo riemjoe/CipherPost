@@ -41,32 +41,39 @@ class PostcardMetaController
     {
         if (!$latitude || !$longitude) return null;
 
-        $url = "https://nominatim.openstreetmap.org/reverse?format=json&lat={$latitude}&lon={$longitude}&zoom=3&addressdetails=1";
+        // Parameter &accept-language=de hinzugefügt für deutsche Rückgabe
+        $url = "https://nominatim.openstreetmap.org/reverse?format=json&lat={$latitude}&lon={$longitude}&zoom=3&addressdetails=1&accept-language=de";
 
-        // WICHTIG: Nominatim verlangt zwingend einen User-Agent!
         $options = [
             "http" => [
-                "header" => "User-Agent: PostcardArchive/1.0 (dein-email@beispiel.de)\r\n"
+                "header" => "User-Agent: PostcardArchive/1.0 (dein-email@beispiel.de)\r\n",
+                "timeout" => 5 // Timeout hinzufügen, damit die Seite nicht hängen bleibt
             ]
         ];
+        
         $context = stream_context_create($options);
 
         try {
-            // Nutze den Context für die Anfrage
             $response = @file_get_contents($url, false, $context);
             
             if ($response === false) {
-                // Falls file_get_contents fehlschlägt (z.B. Allow_url_fopen deaktiviert)
                 return null;
             }
 
             $data = json_decode($response, true);
+            
+            // Nominatim liefert bei zoom=3 meist 'country', 
+            // sicherheitshalber prüfen wir auch 'country_name'
             if (isset($data['address']['country'])) {
                 return $data['address']['country'];
+            } elseif (isset($data['address']['country_name'])) {
+                return $data['address']['country_name'];
             }
+            
         } catch (\Exception $e) {
             return null;
         }
+        
         return null;
     }
 
