@@ -75,9 +75,40 @@ class UtilsFormatter
             }
             file_put_contents(self::$cachePath, json_encode(self::$countryMapping));
 
-        } catch (\Exception $e) {
-            // Im Fehlerfall leeres Array, um Absturz zu vermeiden
+        } 
+        catch (\Exception $e) 
+        {
+            UtilsLogging::error("Fehler beim Laden der Länderinformationen: " . $e->getMessage());
             self::$countryMapping = [];
         }
+    }
+
+
+    public static function compressImageData($fileInputName, $quality = 80) 
+    {
+        if (!isset($_FILES[$fileInputName]) || $_FILES[$fileInputName]['error'] !== UPLOAD_ERR_OK) 
+        {
+            return null;
+        }
+
+        $tmpPath = $_FILES[$fileInputName]['tmp_name'];
+        $info = getimagesize($tmpPath);
+        
+        if (!$info) return null;
+
+        switch ($info[2]) 
+        {
+            case IMAGETYPE_JPEG: $image = imagecreatefromjpeg($tmpPath); break;
+            case IMAGETYPE_PNG:  $image = imagecreatefrompng($tmpPath);  break;
+            case IMAGETYPE_WEBP: $image = imagecreatefromwebp($tmpPath); break;
+            default: return null;
+        }
+
+        ob_start();
+        imagewebp($image, null, $quality);
+        $binaryData = ob_get_clean();
+        imagedestroy($image);
+
+        return $binaryData;
     }
 }

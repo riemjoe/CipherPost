@@ -1,5 +1,8 @@
 <?php
 
+use Postcardarchive\Utils\UtilsFormatter;
+use Postcardarchive\Utils\UtilsLogging;
+
 session_start();
 
 use Postcardarchive\Controllers\PostcardController;
@@ -11,41 +14,15 @@ use Postcardarchive\Models\StampCodeFileModel;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-/**
- * Hilfsfunktion zur Bildverarbeitung
- */
-function processImageToWebP($fileInputName, $quality = 80) {
-    if (!isset($_FILES[$fileInputName]) || $_FILES[$fileInputName]['error'] !== UPLOAD_ERR_OK) {
-        return null;
-    }
+if ($_SERVER['REQUEST_METHOD'] === 'POST') 
+{
+    $frontWebP = UtilsFormatter::compressImageData('front_image');
+    $backWebP  = UtilsFormatter::compressImageData('back_image');
 
-    $tmpPath = $_FILES[$fileInputName]['tmp_name'];
-    $info = getimagesize($tmpPath);
-    
-    if (!$info) return null;
-
-    switch ($info[2]) {
-        case IMAGETYPE_JPEG: $image = imagecreatefromjpeg($tmpPath); break;
-        case IMAGETYPE_PNG:  $image = imagecreatefrompng($tmpPath);  break;
-        case IMAGETYPE_WEBP: $image = imagecreatefromwebp($tmpPath); break;
-        default: return null;
-    }
-
-    ob_start();
-    imagewebp($image, null, $quality);
-    $binaryData = ob_get_clean();
-    imagedestroy($image);
-
-    return $binaryData;
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $frontWebP = processImageToWebP('front_image');
-    $backWebP  = processImageToWebP('back_image');
-
-    if ($frontWebP && $backWebP) {
-        try {
-            // 1. Verschlüsselung & Key-Generierung
+    if ($frontWebP && $backWebP) 
+    {
+        try 
+        {
             $privateKeyObj = UtilsEncryptor::createPrivateKey();
             $publicKeyObj = UtilsEncryptor::getPublicKeyFromPrivateKey($privateKeyObj);
             
@@ -55,35 +32,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $lat = !empty($_POST['lat']) ? (float)$_POST['lat'] : null;
             $lng = !empty($_POST['lng']) ? (float)$_POST['lng'] : null;
             
-            // 2. Postkarte erstellen
             $postcard = PostcardController::createPostcard($encryptedFront, $encryptedBack, $lat, $lng);
             $stampCode = $postcard->getStampCode();
             $privateKeyString = $privateKeyObj->toString('PKCS8');
 
-            // 3. Metadaten (Land/Wetter) generieren
             $meta = null;
-            try {
+            try 
+            {
                 $meta = PostcardMetaController::createPostcardMeta($postcard, [
                     'travel_mode' => $_POST['travel_mode'] ?? '🚗' 
                 ]);
-            } catch (\Exception $metaEx) {
-                error_log("Metadaten-Fehler: " . $metaEx->getMessage());
+            } 
+            catch (\Exception $metaEx) 
+            {
+                UtilsLogging::error("Metadaten-Fehler: " . $metaEx->getMessage());
             }
 
-            if (UserController::isLoggedIn()) {
+            if (UserController::isLoggedIn()) 
+            {
                 $userId = $_SESSION['user_id'];
                 $country = $meta ? $meta->getCountry() : 'Unbekannt';
                 
-                // Wir nutzen den UserStampsController um den Schlüssel in der DB zu hinterlegen
                 UserStampsController::addCreatedStamp(
                     $userId, 
                     $stampCode, 
                     $privateKeyString, 
                     $country
                 );
+
+                UtilsLogging::debug("Postkarte $stampCode wurde dem Benutzer $userId zugewiesen.");
             }
 
-            // 4. Schlüssel für Session/Download vorbereiten
             $fileModel = new StampCodeFileModel([
                 'stamp_code'  => $stampCode,
                 'private_key' => $privateKeyString
@@ -97,8 +76,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: ../index.php?success=1&code=" . urlencode($stampCode));
             exit;
 
-        } catch (\Exception $e) {
+        } 
+        catch (\Exception $e) 
+        {
+            UtilsLogging::error("Fehler beim Erstellen der Postkarte: " . $e->getMessage());
             die("Fehler: " . $e->getMessage());
         }
+    }
+    else
+    {
+        UtilsLogging::error("Fehler: Ungültige Bilddaten hochgeladen.");
+        die("Fehler: Ungültige Bilddaten hochgeladen.");
     }
 }

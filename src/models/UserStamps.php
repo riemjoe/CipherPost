@@ -3,6 +3,9 @@
 namespace Postcardarchive\Models;
 
 use PDO;
+use Postcardarchive\Controllers\PostcardController;
+use Postcardarchive\Controllers\PostcardMetaController;
+use Postcardarchive\Utils\UtilsDatabase;
 
 class UserStamps
 {
@@ -100,6 +103,17 @@ class UserStamps
             'was_received' => $this->was_received,
             'created_at'   => $this->created_at,
         ];
+    }
+
+    public function getPostcard()
+    {
+        return PostcardController::getPostcardByStampCode($this->stamp_code);
+    }
+
+    public function getPostcardMeta()
+    {
+        $postcardId = $this->getPostcard()->getId();
+        return PostcardMetaController::getPostcardMetaByPostcardId($postcardId);
     }
 
     /**

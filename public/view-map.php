@@ -44,10 +44,19 @@ function renderStampItem($stamp) {
             <input type="hidden" name="direct_key_json" value='<?= json_encode(["stamp_code" => $stamp->getStampCode(), "private_key" => $stamp->getPrivateKey()]) ?>'>
             <button type="submit" class="w-32 h-40 flex flex-col items-center justify-between p-3 bg-white shadow-lg cursor-pointer">
                 <div class="text-[7px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 w-full text-center pb-1">Collection</div>
-                <div class="flex-grow flex items-center justify-center px-1">
-                    <span class="text-[11px] font-serif font-black text-sky-900 text-center leading-tight uppercase italic"><?= htmlspecialchars($stamp->getCountry()) ?></span>
+                
+                <div class="flex-grow flex flex-col items-center justify-center px-1 w-full">
+                    <span class="text-[11px] font-serif font-black text-sky-900 text-center leading-tight uppercase italic block">
+                        <?= htmlspecialchars($stamp->getCountry()) ?>
+                    </span>
+                    <span class="text-[8px] font-mono text-stone-400 uppercase italic leading-tight mt-1 block">
+                        <?= htmlspecialchars($stamp->getPostcardMeta()->getCity()) ?>
+                    </span>
                 </div>
-                <div class="text-[8px] font-mono text-stone-300"><?= date('M Y', strtotime($stamp->getCreatedAt())) ?></div>
+                
+                <div class="text-[8px] font-mono text-stone-300">
+                    <?= date('M Y', strtotime($stamp->getCreatedAt())) ?>
+                </div>
             </button>
         </form>
     </div>
