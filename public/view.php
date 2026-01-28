@@ -19,9 +19,13 @@ $meta = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $keyData = null;
 
-    // FALL A: Direkt-Zugriff aus dem Sammelalbum (view-map.php)
+    // FALL A: Direkt-Zugriff aus dem Sammelalbum
     if (isset($_POST['direct_key_json'])) {
-        $keyData = json_decode($_POST['direct_key_json'], true);
+        $keyData = json_encode($_POST['direct_key_json'], true);
+        // Korrektur: direct_key_json ist bereits ein string, falls es per POST kommt
+        if (is_string($_POST['direct_key_json'])) {
+            $keyData = json_decode($_POST['direct_key_json'], true);
+        }
     } 
     // FALL B: Manueller Datei-Upload
     elseif (isset($_FILES['key_file']) && $_FILES['key_file']['error'] === UPLOAD_ERR_OK) {
@@ -76,6 +80,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="style.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap');
+        
+        .postcard-container {
+            perspective: 2000px;
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 3/2;
+        }
+        .postcard-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        .postcard-container.is-flipped .postcard-inner {
+            transform: rotateY(180deg);
+        }
+        .postcard-front, .postcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .postcard-back {
+            transform: rotateY(180deg);
+        }
     </style>
 </head>
 <body class="bg-stone-50 min-h-screen pb-20">
@@ -89,6 +120,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <main class="max-w-5xl mx-auto px-6 flex flex-col items-center">
         
+        <?php if (!UserController::isLoggedIn()): ?>
+            <div class="w-full max-w-md mb-8 flex items-center gap-4 bg-amber-50 border border-amber-100 p-5 rounded-3xl shadow-sm animate-in fade-in slide-in-from-top-4 duration-700">
+                <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0 text-amber-600 font-bold">!</div>
+                <div>
+                    <h4 class="text-amber-900 font-bold text-xs uppercase tracking-wider">Du bist nicht angemeldet</h4>
+                    <p class="text-amber-800 text-[11px] leading-relaxed opacity-80">
+                        Diese Postkarte wird nur temporär angezeigt. Um sie dauerhaft in deiner Collection zu speichern, logge dich bitte zuerst ein.
+                    </p>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <?php if (!$postcard): ?>
             <div class="glass-panel w-full max-w-md p-12 rounded-[3rem] text-center shadow-2xl animate-in zoom-in duration-500 bg-white border border-stone-100">
                 <div class="text-6xl mb-8">🔐</div>
@@ -112,15 +155,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
         <?php else: ?>
-            
-            
             <div class="postcard-container cursor-pointer mb-12" onclick="this.classList.toggle('is-flipped')">
                 <div class="postcard-inner">
                     <div class="postcard-front bg-white shadow-xl overflow-hidden rounded-sm">
                         <img src="data:image/webp;base64,<?= base64_encode($frontDecrypted) ?>" class="w-full h-full object-cover" alt="Vorderseite">
                     </div>
                     
-                    <div class="postcard-back flex p-8 bg-[#fdfcf8] shadow-xl rounded-sm">
+                    <div class="postcard-back flex p-8 bg-[#fdfcf8] shadow-xl rounded-sm border border-stone-100">
                         <div class="w-2/3 border-r border-stone-200 pr-8 flex items-center justify-center relative">
                              <img src="data:image/webp;base64,<?= base64_encode($backDecrypted) ?>" class="max-w-full max-h-full object-contain rotate-[-1deg] drop-shadow-sm" alt="Rückseite">
                         </div>
@@ -128,8 +169,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="w-1/3 pl-8 flex flex-col justify-between">
                             <div class="self-end">
                                 <?php if ($meta && $meta->getCountry()): ?>
-                                    <div class="stamp-border w-24 h-28 flex flex-col items-center justify-between p-2 rotate-3 hover:rotate-0 transition-transform duration-500">
-                                        <div class="text-[7px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 w-full text-center pb-1">Postcard Archive</div>
+                                    <div class="stamp-border w-24 h-28 flex flex-col items-center justify-between p-2 rotate-3 hover:rotate-0 transition-transform duration-500 bg-white shadow-sm border border-stone-100">
+                                        <div class="text-[7px] font-bold text-stone-400 uppercase tracking-widest border-b border-stone-100 w-full text-center pb-1">Archive</div>
                                         <div class="flex-grow flex items-center justify-center px-1">
                                             <span class="text-[11px] font-serif font-black text-sky-900 text-center leading-tight uppercase italic">
                                                 <?= htmlspecialchars($meta->getCountry()) ?>
@@ -138,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <div class="text-[9px] font-mono text-stone-400">2026</div>
                                     </div>
                                 <?php else: ?>
-                                    <div class="w-20 h-24 border-2 border-dashed border-stone-200 flex items-center justify-center text-stone-300 text-[8px] uppercase font-bold text-center">Stamp Here</div>
+                                    <div class="w-20 h-24 border-2 border-dashed border-stone-200 flex items-center justify-center text-stone-300 text-[8px] uppercase font-bold text-center">Stamp</div>
                                 <?php endif; ?>
                             </div>
 

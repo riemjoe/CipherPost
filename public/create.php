@@ -1,3 +1,12 @@
+<?php
+// Am Anfang der Datei sicherstellen, dass wir Zugriff auf den Login-Status haben
+require_once __DIR__ . '/../vendor/autoload.php';
+use Postcardarchive\Controllers\UserController;
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -7,6 +16,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap');
+    </style>
 </head>
 <body class="bg-stone-50 min-h-screen">
 
@@ -18,6 +30,19 @@
     </nav>
 
     <main class="max-w-4xl mx-auto p-4 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        
+        <?php if (!UserController::isLoggedIn()): ?>
+            <div class="mb-8 flex items-center gap-5 bg-amber-50 border border-amber-100 p-6 rounded-[2rem] shadow-sm animate-in fade-in slide-in-from-top-4 duration-700">
+                <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0 text-amber-600 text-xl font-bold">!</div>
+                <div>
+                    <h4 class="text-amber-900 font-bold text-xs uppercase tracking-[0.2em] mb-1">Eingeschränkter Modus</h4>
+                    <p class="text-amber-800/80 text-[11px] leading-relaxed max-w-xl">
+                        Du bist aktuell nicht angemeldet. Du kannst Postkarten erstellen und die Schlüsseldatei herunterladen, aber die Karte wird <strong>nicht</strong> automatisch in deiner persönlichen Collection gespeichert.
+                    </p>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <div class="bg-white rounded-[3rem] shadow-2xl shadow-stone-200 border border-stone-100 overflow-hidden">
             <header class="bg-sky-950 p-12 text-white relative overflow-hidden">
                 <div class="relative z-10">
