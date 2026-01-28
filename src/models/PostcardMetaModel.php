@@ -8,6 +8,7 @@ class PostcardMetaModel
 {
     private $postcard_id;
     private $country;
+    private $city;
     private $temperature;
     private $weather_condition;
     private $travel_mode;
@@ -16,6 +17,7 @@ class PostcardMetaModel
     {
         $this->postcard_id       = $parameters['postcard_id']       ?? null;
         $this->country           = $parameters['country']           ?? null;
+        $this->city              = $parameters['city']              ?? null;
         $this->temperature       = $parameters['temperature']       ?? null;
         $this->weather_condition = $parameters['weather_condition'] ?? null;
         $this->travel_mode       = $parameters['travel_mode']       ?? null;
@@ -24,6 +26,7 @@ class PostcardMetaModel
     // Getters
     public function getPostcardId() { return $this->postcard_id; }
     public function getCountry() { return $this->country; }
+    public function getCity() { return $this->city; }
     public function getTemperature() { return $this->temperature; }
     public function getWeatherCondition() { return $this->weather_condition; }
     public function getTravelMode() { return $this->travel_mode; }
@@ -31,6 +34,7 @@ class PostcardMetaModel
     // Setters
     public function setPostcardId($postcard_id) { $this->postcard_id = $postcard_id; }
     public function setCountry($country) { $this->country = $country; }
+    public function setCity($city) { $this->city = $city; }
     public function setTemperature($temperature) { $this->temperature = $temperature; }
     public function setWeatherCondition($weather_condition) { $this->weather_condition = $weather_condition; }
     public function setTravelMode($travel_mode) { $this->travel_mode = $travel_mode; }
@@ -48,16 +52,17 @@ class PostcardMetaModel
 
         if (!$exists) 
         {
-            $stmt = $pdo->prepare("INSERT INTO postcard_meta (postcard_id, country, temperature, weather_condition, travel_mode) VALUES (:postcard_id, :country, :temperature, :weather_condition, :travel_mode)");
+            $stmt = $pdo->prepare("INSERT INTO postcard_meta (postcard_id, country, city, temperature, weather_condition, travel_mode) VALUES (:postcard_id, :country, :city, :temperature, :weather_condition, :travel_mode)");
         } 
         else 
         {
-            $stmt = $pdo->prepare("UPDATE postcard_meta SET country = :country, temperature = :temperature, weather_condition = :weather_condition, travel_mode = :travel_mode WHERE postcard_id = :postcard_id");
+            $stmt = $pdo->prepare("UPDATE postcard_meta SET country = :country, city = :city, temperature = :temperature, weather_condition = :weather_condition, travel_mode = :travel_mode WHERE postcard_id = :postcard_id");
         }
 
         $stmt->execute([
             ':postcard_id'       => $this->postcard_id,
             ':country'           => $this->country,
+            ':city'              => $this->city,
             ':temperature'       => $this->temperature,
             ':weather_condition' => $this->weather_condition,
             ':travel_mode'       => $this->travel_mode,
@@ -72,6 +77,7 @@ class PostcardMetaModel
         return [
             'postcard_id'       => $this->postcard_id,
             'country'           => $this->country,
+            'city'              => $this->city,
             'temperature'       => $this->temperature,
             'weather_condition' => $this->weather_condition,
             'travel_mode'       => $this->travel_mode,

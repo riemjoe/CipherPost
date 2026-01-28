@@ -4,15 +4,13 @@ namespace Postcardarchive\Controllers;
 
 use Postcardarchive\Models\PostcardModel;
 use Postcardarchive\Models\PostcardMetaModel;
-use Postcardarchive\Utils\Database; // Angenommene Database-Utility Klasse
-use PDO;
 use Postcardarchive\Utils\UtilsDatabase;
+use PDO;
 
 class PostcardMetaController
 {
     /**
      * Ruft Wetterinformationen basierend auf Koordinaten ab.
-     * Nutzt die Open-Meteo API (Open Source, kein Key benötigt).
      */
     private static function getWeatherInformation($latitude, $longitude)
     {
@@ -28,7 +26,7 @@ class PostcardMetaController
             if (isset($data['current_weather'])) {
                 return [
                     'temperature' => $data['current_weather']['temperature'],
-                    'weather_code' => $data['current_weather']['weathercode'] // Code für Symbole (z.B. 0 = Klar)
+                    'weather_code' => $data['current_weather']['weathercode']
                 ];
             }
         } catch (\Exception $e) {
@@ -37,17 +35,20 @@ class PostcardMetaController
         return null;
     }
 
-    private static function getCountryFromCoordinates($latitude, $longitude)
+    /**
+     * Führt ein Reverse-Geocoding durch, um Land UND Stadt zu ermitteln.
+     */
+    private static function getLocationDetails($latitude, $longitude)
     {
         if (!$latitude || !$longitude) return null;
 
-        // Parameter &accept-language=de hinzugefügt für deutsche Rückgabe
-        $url = "https://nominatim.openstreetmap.org/reverse?format=json&lat={$latitude}&lon={$longitude}&zoom=3&addressdetails=1&accept-language=de";
+        // Zoom 10 liefert eine gute Balance zwischen Stadt-Details und Performance
+        $url = "https://nominatim.openstreetmap.org/reverse?format=json&lat={$latitude}&lon={$longitude}&zoom=10&addressdetails=1&accept-language=de";
 
         $options = [
             "http" => [
                 "header" => "User-Agent: PostcardArchive/1.0 (dein-email@beispiel.de)\r\n",
-                "timeout" => 5 // Timeout hinzufügen, damit die Seite nicht hängen bleibt
+                "timeout" => 5
             ]
         ];
         
@@ -55,50 +56,52 @@ class PostcardMetaController
 
         try {
             $response = @file_get_contents($url, false, $context);
-            
-            if ($response === false) {
-                return null;
-            }
+            if ($response === false) return null;
 
             $data = json_decode($response, true);
+            $address = $data['address'] ?? [];
+
+            // Ermittlung der Stadt (Nominatim nutzt verschiedene Keys je nach Größe des Ortes)
+            $city = $address['city'] ?? $address['town'] ?? $address['village'] ?? $address['suburb'] ?? $address['city_district'] ?? null;
             
-            // Nominatim liefert bei zoom=3 meist 'country', 
-            // sicherheitshalber prüfen wir auch 'country_name'
-            if (isset($data['address']['country'])) {
-                return $data['address']['country'];
-            } elseif (isset($data['address']['country_name'])) {
-                return $data['address']['country_name'];
-            }
+            // Ermittlung des Landes
+            $country = $address['country'] ?? $address['country_name'] ?? null;
+
+            return [
+                'city' => $city,
+                'country' => $country
+            ];
             
         } catch (\Exception $e) {
             return null;
         }
-        
-        return null;
     }
 
     /**
-     * Erstellt und speichert die Metadaten für eine existierende Postkarte.
-     * * @param PostcardModel $postcard
-     * @param array $metaData Enthält z.B. ['country', 'travel_mode']
+     * Erstellt und speichert die Metadaten.
      */
     public static function createPostcardMeta(PostcardModel $postcard, array $metaData)
     {
         $pdo = UtilsDatabase::connect();
 
-        // 1. Wetterdaten live abrufen
+        // 1. Wetterdaten abrufen
         $weather = self::getWeatherInformation($postcard->getLatitude(), $postcard->getLongitude());
 
-        // 2. Model instanziieren
+        // 2. Location Details (Land & Stadt) abrufen
+        $location = self::getLocationDetails($postcard->getLatitude(), $postcard->getLongitude());
+
+        // 3. Model instanziieren
+        // Hinweis: Stelle sicher, dass dein PostcardMetaModel und die DB-Tabelle das Feld 'city' besitzen
         $meta = new PostcardMetaModel([
             'postcard_id'       => $postcard->getId(),
-            'country'           => self::getCountryFromCoordinates($postcard->getLatitude(), $postcard->getLongitude()),
+            'country'           => $location['country'] ?? null,
+            'city'              => $location['city'] ?? 'Unbekannt',
             'temperature'       => $weather['temperature'] ?? null,
             'weather_condition' => self::mapWeatherCode($weather['weather_code'] ?? null),
             'travel_mode'       => $metaData['travel_mode'] ?? '🚗'
         ]);
 
-        // 3. In Datenbank persistieren
+        // 4. In Datenbank persistieren
         $meta->saveOrUpdate($pdo);
 
         return $meta;
@@ -125,6 +128,7 @@ class PostcardMetaController
             3 => 'Bedeckt',
             45 => 'Nebelig',
             61 => 'Leichter Regen',
+            80 => 'Regenschauer',
             95 => 'Gewitter'
         ];
         return $codes[$code] ?? 'Unbekannt';

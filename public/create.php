@@ -18,9 +18,38 @@ if (session_status() === PHP_SESSION_NONE) {
     <link rel="stylesheet" href="style.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap');
+        
+        /* Ladebildschirm Styling */
+        #loading-overlay {
+            display: none;
+            backdrop-filter: blur(10px);
+            background-color: rgba(255, 255, 255, 0.7);
+        }
+
+        .loader-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0c4a6e; /* sky-950 */
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-stone-50 min-h-screen">
+
+    <div id="loading-overlay" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center">
+        <div class="loader-spinner mb-6"></div>
+        <h2 class="text-2xl font-serif italic text-sky-950 animate-pulse" style="font-family: 'Playfair Display', serif;">
+            Erinnerung wird archiviert...
+        </h2>
+        <p class="text-stone-400 text-[10px] uppercase tracking-[0.3em] mt-3">Verschlüsselung wird erstellt</p>
+    </div>
 
     <nav class="p-8">
         <a href="index.php" class="group inline-flex items-center gap-3 text-sky-900 font-bold uppercase text-xs tracking-[0.2em]">
@@ -52,7 +81,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 <div class="absolute top-0 right-0 p-8 text-9xl opacity-10 rotate-12">📮</div>
             </header>
 
-            <form action="api/process_create.php" method="POST" enctype="multipart/form-data" class="p-12 space-y-12">
+            <form id="create-postcard-form" action="api/process_create.php" method="POST" enctype="multipart/form-data" class="p-12 space-y-12">
                 
                 <div class="grid md:grid-cols-2 gap-10">
                     <div class="space-y-4">
@@ -113,6 +142,15 @@ if (session_status() === PHP_SESSION_NONE) {
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // Formular-Submit Handling für Ladescreen
+        const form = document.getElementById('create-postcard-form');
+        const loader = document.getElementById('loading-overlay');
+
+        form.addEventListener('submit', function() {
+            loader.style.display = 'flex';
+        });
+
+        // Leaflet Map Setup
         const map = L.map('map').setView([20, 0], 2);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { 
             attribution: '&copy; OpenStreetMap contributors' 
@@ -126,6 +164,7 @@ if (session_status() === PHP_SESSION_NONE) {
             document.getElementById('lng').value = e.latlng.lng.toFixed(6);
         });
 
+        // Bildvorschau Funktion
         function previewImage(input, previewId) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();

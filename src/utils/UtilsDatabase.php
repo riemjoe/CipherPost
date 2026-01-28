@@ -46,6 +46,7 @@ class UtilsDatabase
             CREATE TABLE IF NOT EXISTS postcard_meta (
                 postcard_id INTEGER PRIMARY KEY,
                 country TEXT,
+                city TEXT,
                 temperature REAL,
                 weather_condition TEXT,
                 travel_mode TEXT,
