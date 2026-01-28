@@ -6,5 +6,6 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 UtilsDatabase::initializeDatabase();
 
+echo "Datenbank erfolgreich initialisiert.";
 
 ?>
