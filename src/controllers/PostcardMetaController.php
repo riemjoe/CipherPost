@@ -37,6 +37,26 @@ class PostcardMetaController
         return null;
     }
 
+    private static function getCountryFromCoordinates($latitude, $longitude)
+    {
+        if (!$latitude || !$longitude) return null;
+
+        $url = "https://nominatim.openstreetmap.org/reverse?format=json&lat={$latitude}&lon={$longitude}&zoom=3&addressdetails=1";
+
+        try {
+            $response = @file_get_contents($url);
+            if ($response === false) return null;
+
+            $data = json_decode($response, true);
+            if (isset($data['address']['country'])) {
+                return $data['address']['country'];
+            }
+        } catch (\Exception $e) {
+            return null;
+        }
+        return null;
+    }
+
     /**
      * Erstellt und speichert die Metadaten für eine existierende Postkarte.
      * * @param PostcardModel $postcard
